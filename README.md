@@ -13,3 +13,7 @@ Versione manuale ed economica dell'aggregatore.
 ## Streamlit Secrets
 
 Impostare `SERPAPI_KEY` nei Secrets dell'app Streamlit.
+
+
+## V11
+Ricerca web manuale e minimale: una sola chiamata SerpAPI per ricerca, query semplice, Instagram temporaneamente disattivato per stabilizzare il servizio e contenere i crediti.

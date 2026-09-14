@@ -133,23 +133,10 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     queries_used = 0
     date_label = date_terms(target_date)[1]
     try:
-        q_web = f'"{place}" "{date_label}" eventi'
+        q_web = f'{place} eventi {date_label}'
         analyzed += _store_results(con, place, target_date, serpapi_request(q_web, api_key, n=5))
         queries_used += 1
-        if search_instagram and accounts:
-            if mode == 'full':
-                for a in accounts:
-                    q = f'instagram {a} "{date_label}" {place}'
-                    analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=8), account='@' + a)
-                    queries_used += 1
-            else:
-                accounts_text = ' '.join(accounts)
-                q = f'Instagram {place} "{date_label}" {accounts_text}'
-                # One compact Instagram query only. We deliberately avoid site: operators
-                # because they can make Google/SerpAPI slower. The result URL determines
-                # whether a result is actually from Instagram.
-                analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=5))
-                queries_used += 1
+        # Instagram intentionally disabled in v11: stabilize the web search first.
         con.commit()
     finally:
         con.close()

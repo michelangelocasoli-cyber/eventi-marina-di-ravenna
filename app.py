@@ -40,27 +40,24 @@ def get_events(place, day):
 
 
 st.title('📍 Event Aggregator')
-st.caption('Ricerca manuale di eventi · Web + Instagram pubblicamente indicizzati')
+st.caption('Ricerca manuale di eventi sul web · Instagram verrà aggiunto separatamente')
 st.info('⚡ Ricerca usa Google Light di SerpAPI: più rapida e adatta a questo aggregatore, che usa solo risultati organici.')
 
 with st.sidebar:
     st.header('Ricerca')
     place = st.text_input('Luogo', DEFAULT_PLACE)
     day = st.date_input('Data', DEFAULT_DATE)
-    search_instagram = st.checkbox('Cerca anche Instagram', value=True, help='Usa una sola chiamata SerpAPI per tutti gli account. I risultati vengono considerati Instagram solo se il link restituito punta realmente a Instagram.')
-    mode_label = st.radio(
-        'Modalità',
-        ['💰 Economica — 2 ricerche max', '🔎 Completa — 8 ricerche max'],
-        index=0,
-        help='Economica: 1 web + 1 Instagram combinata. Completa: 1 web + 1 per ciascuno dei 7 account.'
-    )
+    st.checkbox('Instagram (temporaneamente disattivato)', value=False, disabled=True,
+                help='V11: Instagram è disattivato mentre stabilizziamo la ricerca web.')
+    search_instagram = False
+    mode_label = '💰 Economica — 1 ricerca max'
     mode = 'full' if mode_label.startswith('🔎') else 'economy'
     st.divider()
     st.write('**Account Instagram monitorati**')
     for a in DEFAULT_ACCOUNTS:
         st.write('@' + a)
     st.divider()
-    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Motore: Google Light.')
+    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Una sola chiamata per ricerca.')
 
     budget = st.number_input('Budget indicativo crediti SerpAPI', min_value=1, max_value=10000, value=250, step=10)
     st.metric('Chiamate in questa sessione', st.session_state.calls_used)
