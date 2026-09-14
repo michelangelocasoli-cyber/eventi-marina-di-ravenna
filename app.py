@@ -41,7 +41,7 @@ def get_events(place, day):
 
 st.title('📍 Event Aggregator')
 st.caption('Ricerca manuale di eventi · Web + Instagram pubblicamente indicizzati')
-st.info('🌍 Ricerca impostata per Italia: niente parametro location, per evitare il problema noto di SerpAPI con località fuori dagli USA.')
+st.info('⚡ Ricerca usa Google Light di SerpAPI: più rapida e adatta a questo aggregatore, che usa solo risultati organici.')
 
 with st.sidebar:
     st.header('Ricerca')
@@ -60,7 +60,7 @@ with st.sidebar:
     for a in DEFAULT_ACCOUNTS:
         st.write('@' + a)
     st.divider()
-    st.caption('Nessun aggiornamento automatico. Nessun retry automatico.')
+    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Motore: Google Light.')
 
     budget = st.number_input('Budget indicativo crediti SerpAPI', min_value=1, max_value=10000, value=250, step=10)
     st.metric('Chiamate in questa sessione', st.session_state.calls_used)

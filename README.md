@@ -23,3 +23,7 @@ Il test SerpAPI è una vera query Google e può consumare un credito. Il contato
 
 ## v8 – correzione località Italia
 La versione v8 rimuove il parametro `location=Ravenna, Italy`, che SerpApi ha segnalato come temporaneamente poco affidabile per località fuori dagli USA. Usa `gl=it`, `hl=it` e `google_domain=google.it`. Inoltre evita gli operatori Google `site:` nelle query Instagram, che possono causare timeout intermittenti.
+
+
+## v9
+Usa il motore SerpApi `google_light`, più rapido del Google Search standard, con query più semplici e massimo 5 risultati per chiamata. Nessun retry automatico.

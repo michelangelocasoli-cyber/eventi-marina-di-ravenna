@@ -17,20 +17,20 @@ class SearchError(RuntimeError):
         self.attempted_calls = attempted_calls
 
 
-def serpapi_request(q, api_key, n=10):
+def serpapi_request(q, api_key, n=5):
     """One and only one SerpAPI HTTP request. No retries."""
     try:
         r = requests.get(
             'https://serpapi.com/search.json',
             params={
-                'engine': 'google', 'q': q, 'num': n,
+                'engine': 'google_light', 'q': q, 'num': min(n, 10),
                 'hl': 'it', 'gl': 'it', 'google_domain': 'google.it',
                 'api_key': api_key,
             },
-            timeout=(5, 12),
+            timeout=(5, 15),
         )
     except requests.Timeout as e:
-        raise SearchError('SerpAPI non ha risposto entro 12 secondi. Nessun retry automatico.', 1) from e
+        raise SearchError('SerpAPI Google Light non ha risposto entro 15 secondi. Nessun retry automatico.', 1) from e
     except requests.RequestException as e:
         raise SearchError(f'Impossibile raggiungere SerpAPI: {e}', 1) from e
 
@@ -54,7 +54,7 @@ def serpapi_request(q, api_key, n=10):
 
 def test_serpapi(api_key):
     """Minimal real Google query; it consumes one SerpAPI search credit."""
-    return serpapi_request('Marina di Ravenna eventi', api_key, n=1)
+    return serpapi_request('Marina di Ravenna eventi', api_key, n=3)
 
 
 def init():
@@ -133,8 +133,8 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     queries_used = 0
     date_label = date_terms(target_date)[1]
     try:
-        q_web = f'"{place}" "{date_label}" eventi party concerto musica'
-        analyzed += _store_results(con, place, target_date, serpapi_request(q_web, api_key, n=8))
+        q_web = f'"{place}" "{date_label}" eventi'
+        analyzed += _store_results(con, place, target_date, serpapi_request(q_web, api_key, n=5))
         queries_used += 1
         if search_instagram and accounts:
             if mode == 'full':
@@ -144,8 +144,8 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
                     queries_used += 1
             else:
                 accounts_text = ' '.join(accounts)
-                q = f'Instagram {place} {date_label} {accounts_text}'
-                analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=10), account='Instagram (ricerca compatta)')
+                q = f'Instagram {place} "{date_label}" {accounts_text}'
+                analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=5), account='Instagram (ricerca compatta)')
                 queries_used += 1
         con.commit()
     finally:
