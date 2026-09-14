@@ -149,8 +149,12 @@ def _store_results(con, place, target_date, results, account=''):
         snippet = re.sub(r'\s+', ' ', r.get('snippet', '')).strip()
         url = r.get('link', '')
         blob = title + ' ' + snippet
-        if not title or not has_date(blob, target_date):
+        if not title:
             continue
+        # Google may omit the date from the title/snippet even when the result
+        # was returned for a date-specific query. Keep the result and mark it
+        # as needing verification instead of silently discarding it.
+        explicit_date = has_date(blob, target_date)
         host = urlparse(url).netloc.lower()
         source = 'Instagram' if account or 'instagram.' in host else ('Facebook' if 'facebook.' in host else 'Web')
         source_name = account or host
@@ -168,7 +172,7 @@ def _store_results(con, place, target_date, results, account=''):
           ON CONFLICT(place,event_date,title,venue,source_name)
           DO UPDATE SET last_seen=excluded.last_seen,snippet=excluded.snippet,url=excluded.url
         ''', (place, target_date, get_time(blob), title, venue, classify(blob), source,
-              source_name, url, enriched, 'confirmed', now, now))
+              source_name, url, enriched, 'confirmed' if explicit_date else 'probable', now, now))
     return analyzed
 
 

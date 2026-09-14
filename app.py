@@ -119,7 +119,7 @@ if st.session_state.last_error:
 
 events = get_events(place, day.isoformat())
 st.subheader(f'{place} — {day.strftime("%d/%m/%Y")}')
-st.caption('I risultati vengono filtrati sulla data scelta e deduplicati nel database locale.')
+st.caption('I risultati della query vengono archiviati e deduplicati. Se la data non compare nel testo del risultato, l'evento viene marcato come 🟡 da verificare invece di essere scartato.')
 
 if not events:
     st.info("Nessun evento archiviato. Usa prima 'Test SerpAPI' oppure 'Cerca / aggiorna eventi'.")
