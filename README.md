@@ -8,10 +8,4 @@ Versione manuale e a basso consumo di SerpAPI.
 - Usa il client ufficiale SerpApi con timeout di 12 secondi.
 - Nessun retry automatico: un timeout non genera una seconda chiamata involontaria.
 
-## Streamlit Secrets
 
-Impostare `SERPAPI_KEY` in Settings → Secrets:
-
-```toml
-SERPAPI_KEY = "la-tua-chiave"
-```
