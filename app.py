@@ -47,7 +47,7 @@ with st.sidebar:
     st.header('Ricerca')
     place = st.text_input('Luogo', DEFAULT_PLACE)
     day = st.date_input('Data', DEFAULT_DATE)
-    search_instagram = st.checkbox('Cerca anche Instagram', value=True)
+    search_instagram = st.checkbox('Cerca anche Instagram', value=True, help='Usa una sola chiamata SerpAPI per tutti gli account. I risultati vengono considerati Instagram solo se il link restituito punta realmente a Instagram.')
     mode_label = st.radio(
         'Modalità',
         ['💰 Economica — 2 ricerche max', '🔎 Completa — 8 ricerche max'],

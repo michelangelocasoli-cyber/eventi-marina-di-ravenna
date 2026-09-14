@@ -145,7 +145,10 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
             else:
                 accounts_text = ' '.join(accounts)
                 q = f'Instagram {place} "{date_label}" {accounts_text}'
-                analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=5), account='Instagram (ricerca compatta)')
+                # One compact Instagram query only. We deliberately avoid site: operators
+                # because they can make Google/SerpAPI slower. The result URL determines
+                # whether a result is actually from Instagram.
+                analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=5))
                 queries_used += 1
         con.commit()
     finally:
