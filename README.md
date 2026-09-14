@@ -1,11 +1,21 @@
-# Event Aggregator v6 — Marina di Ravenna
+# Event Aggregator v7
 
-Versione manuale e a basso consumo di SerpAPI.
+App Streamlit per cercare manualmente eventi a Marina di Ravenna (o altri luoghi), usando Google tramite SerpAPI e contenuti Instagram pubblicamente indicizzati.
 
+## Caratteristiche
 - Nessun aggiornamento automatico.
-- Modalità economica: massimo 2 ricerche per avvio (1 web + 1 Instagram combinata).
-- Modalità completa: massimo 8 ricerche.
-- Usa il client ufficiale SerpApi con timeout di 12 secondi.
-- Nessun retry automatico: un timeout non genera una seconda chiamata involontaria.
+- Nessun retry automatico.
+- Test SerpAPI separato: **1 chiamata reale**, quindi 1 credito di ricerca.
+- Modalità economica: massimo 2 chiamate per una ricerca (web + Instagram combinata).
+- Modalità completa: massimo 8 chiamate (web + 7 account Instagram).
+- Contatore delle chiamate nella sessione e budget indicativo configurabile.
 
+## Streamlit Secrets
+Impostare in Settings → Secrets:
 
+```toml
+SERPAPI_KEY = "la_tua_chiave"
+```
+
+## Nota sui crediti
+Il test SerpAPI è una vera query Google e può consumare un credito. Il contatore dell'app è locale alla sessione e non sostituisce il contatore ufficiale del proprio account SerpAPI.
