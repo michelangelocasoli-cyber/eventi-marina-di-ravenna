@@ -19,3 +19,7 @@ SERPAPI_KEY = "la_tua_chiave"
 
 ## Nota sui crediti
 Il test SerpAPI è una vera query Google e può consumare un credito. Il contatore dell'app è locale alla sessione e non sostituisce il contatore ufficiale del proprio account SerpAPI.
+
+
+## v8 – correzione località Italia
+La versione v8 rimuove il parametro `location=Ravenna, Italy`, che SerpApi ha segnalato come temporaneamente poco affidabile per località fuori dagli USA. Usa `gl=it`, `hl=it` e `google_domain=google.it`. Inoltre evita gli operatori Google `site:` nelle query Instagram, che possono causare timeout intermittenti.

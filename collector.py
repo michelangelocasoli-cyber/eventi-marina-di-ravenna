@@ -24,7 +24,7 @@ def serpapi_request(q, api_key, n=10):
             'https://serpapi.com/search.json',
             params={
                 'engine': 'google', 'q': q, 'num': n,
-                'hl': 'it', 'gl': 'it', 'location': 'Ravenna, Italy',
+                'hl': 'it', 'gl': 'it', 'google_domain': 'google.it',
                 'api_key': api_key,
             },
             timeout=(5, 12),
@@ -139,12 +139,12 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
         if search_instagram and accounts:
             if mode == 'full':
                 for a in accounts:
-                    q = f'site:instagram.com/{a} "{date_label}"'
+                    q = f'instagram {a} "{date_label}" {place}'
                     analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=8), account='@' + a)
                     queries_used += 1
             else:
-                sites = ' OR '.join(f'site:instagram.com/{a}' for a in accounts)
-                q = f'({sites}) "{date_label}"'
+                accounts_text = ' '.join(accounts)
+                q = f'Instagram {place} {date_label} {accounts_text}'
                 analyzed += _store_results(con, place, target_date, serpapi_request(q, api_key, n=10), account='Instagram (ricerca compatta)')
                 queries_used += 1
         con.commit()

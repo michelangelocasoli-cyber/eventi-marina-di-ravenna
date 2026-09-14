@@ -41,6 +41,7 @@ def get_events(place, day):
 
 st.title('📍 Event Aggregator')
 st.caption('Ricerca manuale di eventi · Web + Instagram pubblicamente indicizzati')
+st.info('🌍 Ricerca impostata per Italia: niente parametro location, per evitare il problema noto di SerpAPI con località fuori dagli USA.')
 
 with st.sidebar:
     st.header('Ricerca')
