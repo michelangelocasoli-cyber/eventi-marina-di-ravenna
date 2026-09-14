@@ -1,19 +1,20 @@
-# Event Aggregator Marina di Ravenna — v10
+# Event Aggregator — Marina di Ravenna v12
 
-Versione manuale ed economica dell'aggregatore.
+Versione stabile con ricerca manuale tramite SerpAPI Google Light.
 
-- Nessun aggiornamento automatico.
-- Nessun retry automatico.
-- Google Light tramite SerpAPI.
-- Modalità economica: massimo 2 chiamate (1 web + 1 Instagram combinata).
-- Modalità completa: massimo 8 chiamate (1 web + 7 account Instagram).
-- I risultati vengono identificati come Instagram solo quando il link restituito è realmente su Instagram; questo evita di etichettare erroneamente risultati web come Instagram.
-- Il test SerpAPI consuma 1 ricerca.
+## Caratteristiche
+- Una sola chiamata SerpAPI per ricerca web.
+- Nessun aggiornamento automatico e nessun retry.
+- Filtraggio dei risultati sulla data selezionata.
+- Deduplicazione tramite SQLite.
+- Estrazione prudente di orario, locale, artista/DJ e prezzo quando presenti nel titolo/snippet.
+- Instagram volutamente separato e non attivo in questa versione.
 
-## Streamlit Secrets
+## Streamlit Cloud
+Imposta il secret:
 
-Impostare `SERPAPI_KEY` nei Secrets dell'app Streamlit.
+```toml
+SERPAPI_KEY = "la_tua_chiave"
+```
 
-
-## V11
-Ricerca web manuale e minimale: una sola chiamata SerpAPI per ricerca, query semplice, Instagram temporaneamente disattivato per stabilizzare il servizio e contenere i crediti.
+File principale: `app.py`.

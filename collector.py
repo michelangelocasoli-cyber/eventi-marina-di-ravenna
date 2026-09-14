@@ -90,6 +90,47 @@ def get_time(text):
     return m.group(0).replace('.', ':') if m else ''
 
 
+def extract_venue(text, place):
+    # Conservative extraction from common Italian event wording.
+    patterns = [
+        r'\b(?:presso|al|alla|allo|agli|alle|@)\s+([A-ZÀ-ÖØ-Ý][^.!?\n]{2,60})',
+        r'\b(?:location|locale)\s*[:\-]\s*([A-ZÀ-ÖØ-Ý][^.!?\n]{2,60})',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text)
+        if m:
+            v = re.sub(r'\s+', ' ', m.group(1)).strip(' ,;:-')
+            if v and place.lower() not in v.lower():
+                return v
+    return ''
+
+def extract_price(text):
+    patterns = [
+        r'(?:ingresso|entrata|ticket|biglietto|prezzo)\s*(?:[:\-]?\s*)?(€\s*\d+(?:[,.]\d{1,2})?)',
+        r'(€\s*\d+(?:[,.]\d{1,2})?)',
+        r'(\d+(?:[,.]\d{1,2})?\s*€)',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            return m.group(1).strip()
+    if re.search(r'\bingresso\s+gratuito\b|\bfree entry\b', text, re.I):
+        return 'Gratuito'
+    return ''
+
+def extract_artist(text):
+    patterns = [
+        r'(?:con|live|dj set|dj|special guest)\s*[:\-]?\s*([A-ZÀ-ÖØ-Ý][^.!?\n]{2,70})',
+        r'\b([A-Z][A-Za-zÀ-ÖØ-öø-ÿ&\' .-]{2,40}\s(?:live|band|dj))\b',
+    ]
+    for pat in patterns:
+        m = re.search(pat, text, re.I)
+        if m:
+            value = re.sub(r'\s+', ' ', m.group(1)).strip(' ,;:-')
+            if value and len(value) < 80:
+                return value
+    return ''
+
 def classify(text):
     t = text.lower()
     if any(x in t for x in ['dj','party','disco','night','serata']): return 'Nightlife'
@@ -113,13 +154,21 @@ def _store_results(con, place, target_date, results, account=''):
         host = urlparse(url).netloc.lower()
         source = 'Instagram' if account or 'instagram.' in host else ('Facebook' if 'facebook.' in host else 'Web')
         source_name = account or host
+        venue = extract_venue(blob, place)
+        price = extract_price(blob)
+        artist = extract_artist(blob)
+        enriched = snippet
+        extras = []
+        if artist: extras.append('Artista/DJ: ' + artist)
+        if price: extras.append('Prezzo: ' + price)
+        if extras: enriched = enriched + (' · ' if enriched else '') + ' · '.join(extras)
         con.execute('''INSERT INTO events
           (place,event_date,event_time,title,venue,category,source_type,source_name,url,snippet,confidence,first_seen,last_seen)
           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
           ON CONFLICT(place,event_date,title,venue,source_name)
           DO UPDATE SET last_seen=excluded.last_seen,snippet=excluded.snippet,url=excluded.url
-        ''', (place, target_date, get_time(blob), title, '', classify(blob), source,
-              source_name, url, snippet, 'confirmed', now, now))
+        ''', (place, target_date, get_time(blob), title, venue, classify(blob), source,
+              source_name, url, enriched, 'confirmed', now, now))
     return analyzed
 
 
