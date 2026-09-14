@@ -1,13 +1,14 @@
 import os, sqlite3
 from pathlib import Path
 import streamlit as st
-from collector import run, DEFAULT_ACCOUNTS
+from collector import run, DEFAULT_ACCOUNTS, SearchError
 
 DB = Path("events.db")
 DEFAULT_PLACE = "Marina di Ravenna"
 DEFAULT_DATE = __import__('datetime').date(2026, 9, 12)
 
 st.set_page_config(page_title="Event Aggregator", page_icon="📍", layout="wide")
+
 
 def get_events(place, day):
     if not DB.exists():
@@ -56,6 +57,9 @@ if refresh:
             try:
                 analyzed, queries = run(place, day.isoformat(), search_instagram=search_instagram, api_key=key, mode=mode)
                 st.success(f"Ricerca completata: {analyzed} risultati analizzati con {queries} chiamate SerpAPI.")
+            except SearchError as e:
+                st.error(str(e))
+                st.info("Puoi riprovare più tardi. Non vengono effettuati retry automatici, così non rischi di consumare crediti extra.")
             except Exception as e:
                 st.error(f"Errore durante la ricerca: {e}")
 
@@ -88,4 +92,4 @@ else:
                     st.link_button("Fonte", e["url"])
 
 st.divider()
-st.caption("Aggiornamento esclusivamente manuale. Modalità economica: massimo 2 chamadas SerpAPI per ricerca (1 web + 1 Instagram combinata). Modalità completa: massimo 8.")
+st.caption("Aggiornamento esclusivamente manuale. Nessun retry automatico. Modalità economica: massimo 2 chiamate SerpAPI per ricerca.")

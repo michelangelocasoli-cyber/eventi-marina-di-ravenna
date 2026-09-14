@@ -1,7 +1,9 @@
-import os, re, sqlite3, requests
+import os, re, sqlite3
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+
+import serpapi
 
 DB = Path("events.db")
 DEFAULT_ACCOUNTS = [
@@ -10,11 +12,45 @@ DEFAULT_ACCOUNTS = [
     "singitamarinadiravenna"
 ]
 
+class SearchError(RuntimeError):
+    pass
+
+
 def search(q, api_key, n=10):
-    p = {"engine": "google", "q": q, "api_key": api_key, "num": n, "hl": "it", "gl": "it"}
-    r = requests.get("https://serpapi.com/search.json", params=p, timeout=30)
-    r.raise_for_status()
-    return r.json().get("organic_results", [])
+    """Single SerpApi request, deliberately without automatic retries.
+
+    We avoid automatic retries because the user has a limited monthly search quota.
+    The official SerpApi client is used with a short timeout so a network problem
+    does not leave Streamlit waiting for 30 seconds.
+    """
+    try:
+        client = serpapi.Client(api_key=api_key, timeout=12)
+        data = client.search({
+            "engine": "google",
+            "q": q,
+            "num": n,
+            "hl": "it",
+            "gl": "it",
+            "location": "Ravenna, Italy",
+        })
+        # SerpResults behaves like a dict, but converting makes this robust across SDK versions.
+        data = dict(data)
+    except Exception as e:
+        msg = str(e)
+        if "timeout" in msg.lower() or "timed out" in msg.lower():
+            raise SearchError(
+                "SerpAPI non ha risposto entro 12 secondi. "
+                "Non viene effettuato alcun tentativo automatico, per non consumare altri crediti."
+            ) from e
+        raise SearchError(f"SerpAPI: {msg}") from e
+
+    if data.get("error"):
+        raise SearchError(f"SerpAPI: {data['error']}")
+    status = data.get("search_metadata", {}).get("status")
+    if status == "Error":
+        raise SearchError(f"SerpAPI: {data.get('error', 'ricerca non riuscita')}")
+    return data.get("organic_results", [])
+
 
 def init():
     con = sqlite3.connect(DB)
@@ -29,22 +65,25 @@ def init():
     con.commit()
     return con
 
+
 def date_terms(target_date):
     d = datetime.strptime(target_date, "%Y-%m-%d")
     names = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"]
     return [d.strftime("%d/%m/%Y"), f"{d.day} {names[d.month-1]} {d.year}"]
 
+
 def has_date(text, target_date):
     t = text.lower()
     d = datetime.strptime(target_date, "%Y-%m-%d")
     terms = date_terms(target_date)
-    # Also accept common zero-padded Italian forms such as 12 settembre 2026.
-    terms.append(f"{d.day:02d} {terms[1].split(' ', 1)[1]}")
+    terms += [f"{d.day:02d} {terms[1].split(' ', 1)[1]}", d.strftime("%d-%m-%Y")]
     return any(p.lower() in t for p in terms)
+
 
 def get_time(text):
     m = re.search(r'\b(?:[01]?\d|2[0-3])[:.][0-5]\d\b', text)
     return m.group(0).replace(".", ":") if m else ""
+
 
 def classify(text):
     t = text.lower()
@@ -53,6 +92,7 @@ def classify(text):
     if any(x in t for x in ["aperitivo", "apericena"]): return "Aperitivo"
     if any(x in t for x in ["festival", "evento"]): return "Evento"
     return "Altro"
+
 
 def _store_results(con, place, target_date, results, account=""):
     now = datetime.utcnow().isoformat()
@@ -77,8 +117,9 @@ def _store_results(con, place, target_date, results, account=""):
               source_name, url, snippet, "confirmed", now, now))
     return analyzed
 
+
 def run(place, target_date, search_instagram=True, api_key=None, accounts=None, mode="economy"):
-    """Manual search only.
+    """Manual search only. No scheduled or automatic requests.
 
     economy: 2 SerpAPI searches max (one web + one combined Instagram search).
     full: 1 web search + 1 search per Instagram account.
@@ -92,23 +133,23 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     queries_used = 0
     date_label = date_terms(target_date)[1]
 
-    # One broad web query.
-    q_web = f'"{place}" "{date_label}" eventi party concerto musica'
-    analyzed += _store_results(con, place, target_date, search(q_web, api_key, n=10))
-    queries_used += 1
+    try:
+        q_web = f'"{place}" "{date_label}" eventi party concerto musica'
+        analyzed += _store_results(con, place, target_date, search(q_web, api_key, n=8))
+        queries_used += 1
 
-    if search_instagram and accounts:
-        if mode == "full":
-            for a in accounts:
-                q = f'site:instagram.com/{a} "{date_label}"'
-                analyzed += _store_results(con, place, target_date, search(q, api_key, n=10), account="@" + a)
+        if search_instagram and accounts:
+            if mode == "full":
+                for a in accounts:
+                    q = f'site:instagram.com/{a} "{date_label}"'
+                    analyzed += _store_results(con, place, target_date, search(q, api_key, n=8), account="@" + a)
+                    queries_used += 1
+            else:
+                sites = " OR ".join(f'site:instagram.com/{a}' for a in accounts)
+                q = f'({sites}) "{date_label}"'
+                analyzed += _store_results(con, place, target_date, search(q, api_key, n=10), account="Instagram (ricerca compatta)")
                 queries_used += 1
-        else:
-            # One combined query: cheaper, less exhaustive than full mode.
-            sites = " OR ".join(f'site:instagram.com/{a}' for a in accounts)
-            q = f'({sites}) "{date_label}"'
-            analyzed += _store_results(con, place, target_date, search(q, api_key, n=20), account="Instagram (ricerca compatta)")
-            queries_used += 1
-
-    con.commit(); con.close()
+        con.commit()
+    finally:
+        con.close()
     return analyzed, queries_used

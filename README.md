@@ -1,27 +1,17 @@
-# Event Aggregator — Marina di Ravenna
+# Event Aggregator v6 — Marina di Ravenna
 
-App Streamlit per cercare manualmente eventi per luogo e data usando Google tramite SerpAPI, inclusi risultati Instagram pubblicamente indicizzati.
+Versione manuale e a basso consumo di SerpAPI.
 
-## Ricerca manuale e risparmio crediti
-Non esiste alcun aggiornamento automatico. La ricerca parte esclusivamente quando l'utente preme **Cerca / aggiorna eventi**.
-
-Sono disponibili due modalità:
-- **Economica:** massimo 2 chiamate SerpAPI (1 web + 1 ricerca Instagram combinata). È la modalità consigliata per risparmiare crediti.
-- **Completa:** massimo 8 chiamate (1 web + 1 per ciascuno dei 7 account Instagram).
-
-Se **Cerca anche Instagram** è disattivato, viene fatta una sola chiamata web.
+- Nessun aggiornamento automatico.
+- Modalità economica: massimo 2 ricerche per avvio (1 web + 1 Instagram combinata).
+- Modalità completa: massimo 8 ricerche.
+- Usa il client ufficiale SerpApi con timeout di 12 secondi.
+- Nessun retry automatico: un timeout non genera una seconda chiamata involontaria.
 
 ## Streamlit Secrets
-In Streamlit → Settings → Secrets:
+
+Impostare `SERPAPI_KEY` in Settings → Secrets:
 
 ```toml
-SERPAPI_KEY = "la_tua_chiave"
+SERPAPI_KEY = "la-tua-chiave"
 ```
-
-## Deploy
-- Repository GitHub
-- Main file: `app.py`
-- Python dependencies: `requirements.txt`
-
-## Nota Instagram
-La ricerca Instagram usa contenuti pubblicamente indicizzati nei risultati Google; non è uno scraping diretto dell'account Instagram.
