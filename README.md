@@ -1,64 +1,27 @@
-# Event Aggregator v3
+# Event Aggregator — Marina di Ravenna
 
-Versione con **archivio SQLite + collector automatico + aggiornamento GitHub Actions**.
+App Streamlit per cercare manualmente eventi per luogo e data usando Google tramite SerpAPI, inclusi risultati Instagram pubblicamente indicizzati.
 
-## Cosa contiene
+## Ricerca manuale e risparmio crediti
+Non esiste alcun aggiornamento automatico. La ricerca parte esclusivamente quando l'utente preme **Cerca / aggiorna eventi**.
 
-- `app.py` — interfaccia Streamlit
-- `collector.py` — motore di raccolta
-- `events.db` — database storico creato al primo avvio
-- `.github/workflows/update-events.yml` — aggiornamento automatico giornaliero
-- `requirements.txt`
+Sono disponibili due modalità:
+- **Economica:** massimo 2 chiamate SerpAPI (1 web + 1 ricerca Instagram combinata). È la modalità consigliata per risparmiare crediti.
+- **Completa:** massimo 8 chiamate (1 web + 1 per ciascuno dei 7 account Instagram).
 
-## Configurazione iniziale
+Se **Cerca anche Instagram** è disattivato, viene fatta una sola chiamata web.
 
-Luogo: Marina di Ravenna
-Data: 12/09/2026
+## Streamlit Secrets
+In Streamlit → Settings → Secrets:
 
-Account Instagram:
-@donnarosa38
-@formentera_marinadiravenna
-@bagnozanzibar
-@matilda_disco
-@hookipaeventi
-@bbk_peasurebeach
-@singitamarinadiravenna
+```toml
+SERPAPI_KEY = "la_tua_chiave"
+```
 
-## Avvio locale
+## Deploy
+- Repository GitHub
+- Main file: `app.py`
+- Python dependencies: `requirements.txt`
 
-pip install -r requirements.txt
-streamlit run app.py
-
-Per aggiornare i dati:
-
-set SERPAPI_KEY=LA_TUA_CHIAVE
-python collector.py
-
-Su macOS/Linux:
-export SERPAPI_KEY=LA_TUA_CHIAVE
-python collector.py
-
-## Aggiornamento automatico
-
-Il workflow GitHub Actions esegue il collector ogni giorno alle 06:30 UTC e salva il database nel repository.
-
-Per usarlo:
-1. carica i file in un repository GitHub;
-2. crea il secret `SERPAPI_KEY`;
-3. abilita GitHub Actions;
-4. deploya `app.py` su Streamlit Community Cloud.
-
-Streamlit documenta il deploy tramite GitHub e l'uso dei secrets. L'app può essere pubblicata su un sottodominio `streamlit.app`.
-
-## Limite Instagram
-
-Il collector non accede a contenuti privati e non aggira login o protezioni. Cerca contenuti pubblicamente indicizzati. Per un accesso diretto agli account servono le API/autorizzazioni ufficiali Meta quando applicabili.
-
-## Prossimo livello
-
-- riconoscimento AI di titolo, locale, artista, prezzo;
-- deduplicazione semantica più forte;
-- fonti Facebook;
-- notifiche quando appare un nuovo evento;
-- supporto a più città/date salvate;
-- pannello per aggiungere/rimuovere account senza modificare il codice.
+## Nota Instagram
+La ricerca Instagram usa contenuti pubblicamente indicizzati nei risultati Google; non è uno scraping diretto dell'account Instagram.
