@@ -57,7 +57,7 @@ with st.sidebar:
     for a in DEFAULT_ACCOUNTS:
         st.markdown(f'[@{a}](https://www.instagram.com/{a}/)')
     st.divider()
-    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Una sola chiamata per ricerca.')
+    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Una sola chiamata per ciascun tipo di ricerca.')
 
     budget = st.number_input('Budget indicativo crediti SerpAPI', min_value=1, max_value=10000, value=250, step=10)
     st.metric('Chiamate in questa sessione', st.session_state.calls_used)

@@ -27,10 +27,10 @@ def serpapi_request(q, api_key, n=5):
                 'hl': 'it', 'gl': 'it', 'google_domain': 'google.it',
                 'api_key': api_key,
             },
-            timeout=(5, 15),
+            timeout=(5, 30),
         )
     except requests.Timeout as e:
-        raise SearchError('SerpAPI Google Light non ha risposto entro 15 secondi. Nessun retry automatico.', 1) from e
+        raise SearchError('SerpAPI Google Light non ha risposto entro 30 secondi. Nessun retry automatico.', 1) from e
     except requests.RequestException as e:
         raise SearchError(f'Impossibile raggiungere SerpAPI: {e}', 1) from e
 
