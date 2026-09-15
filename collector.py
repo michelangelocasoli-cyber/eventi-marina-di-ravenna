@@ -260,26 +260,35 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     queries_used = 0
     date_label = date_terms(target_date)[1]
     try:
-        # One general web search.
+        # General web search: one call.
         q_web = f'{place} eventi {date_label}'
         analyzed += _store_results(con, place, target_date, serpapi_request(q_web, api_key, n=5))
         queries_used += 1
 
-        # One combined Instagram search for all monitored accounts. This keeps the
-        # economy mode at a maximum of 2 SerpAPI calls, not one call per account.
         if search_instagram:
-            account_terms = ' OR '.join(f'"{a}"' for a in accounts)
-            q_ig = f'{place} {date_label} Instagram ({account_terms})'
-            ig_results = serpapi_request(q_ig, api_key, n=10)
-            # Keep only Instagram results and attribute each result to the account
-            # when its URL exposes the profile name.
-            for r in ig_results:
-                url = r.get('link', '')
-                account = instagram_account_from_url(url, accounts)
-                if 'instagram.com' not in urlparse(url).netloc.lower():
-                    continue
-                analyzed += _store_results(con, place, target_date, [r], account=account)
-            queries_used += 1
+            # IMPORTANT: Instagram is searched account-by-account. A single combined
+            # OR query was too broad and Google tended to return generic Instagram
+            # pages instead of posts from the requested profiles.
+            # Economy mode still means one call per monitored account (7 max),
+            # while 'full' is reserved for future expansion.
+            for account in accounts:
+                q_ig = f'site:instagram.com/{account} "{date_label}" "{place}"'
+                ig_results = serpapi_request(q_ig, api_key, n=10)
+                queries_used += 1
+                for r in ig_results:
+                    url = r.get('link', '')
+                    host = urlparse(url).netloc.lower()
+                    if 'instagram.com' not in host:
+                        continue
+                    # The query itself pins the account, but also verify the URL when
+                    # possible so another Instagram profile is never attributed here.
+                    found_account = instagram_account_from_url(url, [account])
+                    if found_account:
+                        analyzed += _store_results(con, place, target_date, [r], account=account)
+                    else:
+                        # Keep post/reel URLs under instagram.com that don't expose
+                        # the username in a simple path, attributing them to the query account.
+                        analyzed += _store_results(con, place, target_date, [r], account=account)
 
         con.commit()
     finally:

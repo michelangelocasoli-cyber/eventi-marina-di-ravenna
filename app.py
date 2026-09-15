@@ -49,15 +49,15 @@ with st.sidebar:
     place = st.text_input('Luogo', DEFAULT_PLACE)
     day = st.date_input('Data', DEFAULT_DATE)
     search_instagram = st.checkbox('Cerca anche su Instagram', value=True,
-                help='Usa una seconda chiamata SerpAPI, raggruppando tutti gli account in un’unica ricerca.')
-    mode_label = '💰 Economica — 1 ricerca web + 1 Instagram' if search_instagram else '💰 Economica — 1 ricerca max'
+                help='Fa una ricerca separata per ciascun account Instagram. È più efficace, ma usa 1 credito per account.')
+    mode_label = '📱 Instagram prioritario — 1 ricerca per account' if search_instagram else '💰 Solo ricerca web'
     mode = 'full' if mode_label.startswith('🔎') else 'economy'
     st.divider()
     st.write('**Account Instagram monitorati**')
     for a in DEFAULT_ACCOUNTS:
         st.markdown(f'[@{a}](https://www.instagram.com/{a}/)')
     st.divider()
-    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Una sola chiamata per ciascun tipo di ricerca.')
+    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Instagram viene cercato account per account per aumentare molto la precisione.')
 
     budget = st.number_input('Budget indicativo crediti SerpAPI', min_value=1, max_value=10000, value=250, step=10)
     st.metric('Chiamate in questa sessione', st.session_state.calls_used)
@@ -92,11 +92,9 @@ if refresh:
     elif st.session_state.calls_used >= budget:
         st.error('Budget indicativo raggiunto. Non viene effettuata alcuna chiamata.')
     else:
-        max_calls = 8 if mode == 'full' and search_instagram else 1
-        if mode == 'economy' and search_instagram:
-            max_calls = 2
+        max_calls = 1 + (len(DEFAULT_ACCOUNTS) if search_instagram else 0)
         if st.session_state.calls_used + max_calls > budget:
-            st.warning(f'Questa ricerca può usare fino a {max_calls} chiamate e supererebbe il budget indicativo di {budget}. Nessuna chiamata effettuata.')
+            st.warning(f'Questa ricerca può usare fino a {max_calls} chiamate SerpAPI (1 web + {len(DEFAULT_ACCOUNTS) if search_instagram else 0} Instagram) e supererebbe il budget indicativo di {budget}. Nessuna chiamata effettuata.')
         else:
             with st.spinner('Ricerca in corso…'):
                 try:
