@@ -140,6 +140,58 @@ def classify(text):
     return 'Altro'
 
 
+def fetch_page_text(url):
+    """Fetch the original source page without using SerpAPI. Best-effort only."""
+    if not url or not url.startswith(('http://', 'https://')):
+        return ''
+    try:
+        r = requests.get(url, headers={'User-Agent':'Mozilla/5.0 (compatible; EventAggregator/1.0)'}, timeout=(4, 8), allow_redirects=True)
+        if not r.ok:
+            return ''
+        text = re.sub(r'<script[^>]*>.*?</script>|<style[^>]*>.*?</style>', ' ', r.text, flags=re.I|re.S)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'&nbsp;|&#160;', ' ', text, flags=re.I)
+        text = re.sub(r'\s+', ' ', text)
+        return text[:250000]
+    except requests.RequestException:
+        return ''
+
+
+def explicit_date_status(text, target_date):
+    """Return confirmed / wrong / unknown based on dates visible in source text."""
+    if not text:
+        return 'unknown'
+    d = datetime.strptime(target_date, '%Y-%m-%d')
+    t = text.lower()
+    target_patterns = [
+        rf'\b{d.day:02d}[/-]{d.month:02d}[/-]{d.year}\b',
+        rf'\b{d.day}[/-]{d.month:02d}[/-]{str(d.year)[2:]}\b',
+        rf'\b{d.day}\s+{date_terms(target_date)[1].split(" ",1)[1]}\b',
+        rf'\b{d.day:02d}\s+{date_terms(target_date)[1].split(" ",1)[1]}\b',
+    ]
+    if any(re.search(p, t, re.I) for p in target_patterns):
+        return 'confirmed'
+    # Find explicit full numeric dates or Italian month dates and reject if they are different.
+    months = '|'.join(['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'])
+    found = []
+    for m in re.finditer(r'\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b', t):
+        day_n, mon_n, year_n = m.group(1), m.group(2), m.group(3)
+        if year_n:
+            y = int(year_n); y += 2000 if y < 100 else 0
+        else:
+            y = d.year
+        try:
+            found.append(datetime(y, int(mon_n), int(day_n)).date())
+        except ValueError:
+            pass
+    for m in re.finditer(r'\b(\d{1,2})\s+(' + months + r')\s+(\d{4})\b', t, re.I):
+        month_map={x:i+1 for i,x in enumerate(['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'])}
+        try: found.append(datetime(int(m.group(3)), month_map[m.group(2).lower()], int(m.group(1))).date())
+        except ValueError: pass
+    if found and d.date() not in found:
+        return 'wrong'
+    return 'unknown'
+
 def _store_results(con, place, target_date, results, account=''):
     now = datetime.utcnow().isoformat()
     analyzed = 0
@@ -151,10 +203,15 @@ def _store_results(con, place, target_date, results, account=''):
         blob = title + ' ' + snippet
         if not title:
             continue
-        # Google may omit the date from the title/snippet even when the result
-        # was returned for a date-specific query. Keep the result and mark it
-        # as needing verification instead of silently discarding it.
-        explicit_date = has_date(blob, target_date)
+        # Verify the original page. Google snippets alone are not reliable for the requested date.
+        source_text = fetch_page_text(url)
+        status = explicit_date_status(source_text, target_date)
+        if status == 'unknown':
+            status = 'confirmed' if has_date(blob, target_date) else 'probable'
+        if status == 'wrong':
+            # Do not show a result whose original source clearly refers to another date.
+            continue
+        explicit_date = status == 'confirmed'
         host = urlparse(url).netloc.lower()
         source = 'Instagram' if account or 'instagram.' in host else ('Facebook' if 'facebook.' in host else 'Web')
         source_name = account or host

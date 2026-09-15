@@ -22,7 +22,7 @@ def get_key():
     return st.secrets.get('SERPAPI_KEY', os.getenv('SERPAPI_KEY', ''))
 
 
-def get_events(place, day):
+def get_events(place, day, include_probable=False):
     if not DB.exists():
         return []
     con = sqlite3.connect(DB)
@@ -32,9 +32,10 @@ def get_events(place, day):
                source_type, source_name, url, snippet, confidence
         FROM events
         WHERE lower(place)=lower(?) AND event_date=?
+        AND (confidence='confirmed' OR ?=1)
         ORDER BY CASE WHEN event_time IS NULL OR event_time='' THEN 1 ELSE 0 END,
                  event_time, title
-    ''', (place, day)).fetchall()
+    ''', (place, day, 1 if include_probable else 0)).fetchall()
     con.close()
     return [dict(r) for r in rows]
 
@@ -117,9 +118,10 @@ if refresh:
 if st.session_state.last_error:
     st.info('Consiglio: non premere ripetutamente il pulsante. Se il problema persiste, aspetta qualche minuto e usa prima il Test SerpAPI.')
 
-events = get_events(place, day.isoformat())
+include_probable = st.checkbox('Mostra anche eventi da verificare', value=False, help='Gli eventi la cui fonte non permette di verificare la data restano nascosti per impostazione predefinita.')
+events = get_events(place, day.isoformat(), include_probable)
 st.subheader(f'{place} — {day.strftime("%d/%m/%Y")}')
-st.caption("I risultati della query vengono archiviati e deduplicati. Se la data non compare nel testo del risultato, l'evento viene marcato come 🟡 da verificare invece di essere scartato.")
+st.caption("La data viene verificata, quando possibile, direttamente sulla pagina originale. I risultati che indicano chiaramente una data diversa vengono scartati.")
 
 if not events:
     st.info("Nessun evento archiviato. Usa prima 'Test SerpAPI' oppure 'Cerca / aggiorna eventi'.")
