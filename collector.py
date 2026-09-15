@@ -294,3 +294,83 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     finally:
         con.close()
     return analyzed, queries_used
+
+# --- Authenticated Instagram (optional) ---
+def instagram_session_from_env():
+    """Build a requests session from Streamlit/OS secrets. Never stores credentials in DB."""
+    sid = os.getenv('INSTAGRAM_SESSIONID', '').strip()
+    if not sid:
+        return None
+    s = requests.Session()
+    s.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36',
+        'Accept': '*/*',
+        'Referer': 'https://www.instagram.com/',
+        'X-IG-App-ID': '936619743392459',
+    })
+    s.cookies.set('sessionid', sid, domain='.instagram.com')
+    csrf = os.getenv('INSTAGRAM_CSRF_TOKEN', '').strip()
+    if csrf:
+        s.cookies.set('csrftoken', csrf, domain='.instagram.com')
+    return s
+
+
+def instagram_authenticated_profile(username, target_date, place, session):
+    """Best-effort read of the authenticated web profile endpoint.
+    This uses the user's own authenticated browser session cookie; it does not save it.
+    """
+    if session is None:
+        return []
+    headers = dict(session.headers)
+    headers['X-Requested-With'] = 'XMLHttpRequest'
+    try:
+        r = session.get(
+            'https://www.instagram.com/api/v1/users/web_profile_info/',
+            params={'username': username}, headers=headers, timeout=(5, 15)
+        )
+        if not r.ok:
+            return []
+        data = r.json()
+        user = (((data.get('data') or {}).get('user')) or {})
+        media = (((user.get('edge_owner_to_timeline_media') or {}).get('edges')) or [])
+        out = []
+        for edge in media:
+            node = edge.get('node') or {}
+            caption = ' '.join([
+                (((node.get('edge_media_to_caption') or {}).get('edges') or [{}])[0].get('node') or {}).get('text','')
+            ]).strip()
+            ts = node.get('taken_at_timestamp')
+            dt = ''
+            if ts:
+                try: dt = datetime.fromtimestamp(int(ts)).strftime('%Y-%m-%d')
+                except Exception: pass
+            permalink = node.get('shortcode')
+            url = f'https://www.instagram.com/p/{permalink}/' if permalink else f'https://www.instagram.com/{username}/'
+            text = (caption + ' ' + dt).strip()
+            # Keep media published near/containing the target date; captions are also checked.
+            if dt == target_date or has_date(caption, target_date):
+                out.append({'title': caption[:180] or f'Post Instagram @{username}', 'snippet': caption, 'link': url, 'account': username})
+        return out
+    except (requests.RequestException, ValueError, TypeError):
+        return []
+
+
+def run_authenticated_instagram(place, target_date, accounts=None):
+    """Read monitored Instagram profiles with an authenticated session, without SerpAPI."""
+    accounts = accounts or DEFAULT_ACCOUNTS
+    session = instagram_session_from_env()
+    if session is None:
+        return 0, 0, 'INSTAGRAM_SESSIONID non configurato'
+    con = init()
+    analyzed = 0
+    found = 0
+    try:
+        for account in accounts:
+            results = instagram_authenticated_profile(account, target_date, place, session)
+            found += len(results)
+            if results:
+                analyzed += _store_results(con, place, target_date, results, account=account)
+        con.commit()
+    finally:
+        con.close()
+    return analyzed, found, ''

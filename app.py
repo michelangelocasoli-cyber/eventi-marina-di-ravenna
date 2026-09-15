@@ -2,7 +2,8 @@ import os, sqlite3
 from pathlib import Path
 from datetime import date
 import streamlit as st
-from collector import run, test_serpapi, DEFAULT_ACCOUNTS, SearchError
+import os
+from collector import run, test_serpapi, DEFAULT_ACCOUNTS, SearchError, run_authenticated_instagram
 
 DB = Path('events.db')
 DEFAULT_PLACE = 'Marina di Ravenna'
