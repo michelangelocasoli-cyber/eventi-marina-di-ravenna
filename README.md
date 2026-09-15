@@ -1,32 +1,22 @@
-# Event Aggregator Marina di Ravenna — V19
+# Event Aggregator Marina di Ravenna — v20
 
-Questa versione mantiene la ricerca Web + Instagram via SerpAPI e aggiunge una modalità **Instagram autenticato**, che non usa crediti SerpAPI.
+## Novità importante
+La ricerca Instagram diretta è ora **separata da SerpAPI**.
 
-## Configurazione sicura
-NON inserire username/password Instagram nel codice o in GitHub.
+- `🔎 Cerca / aggiorna eventi` = web + Instagram tramite SerpAPI (consuma crediti).
+- `📱 Cerca direttamente su Instagram` = usa la sessione Instagram configurata nei Secrets di Streamlit e **non usa SerpAPI**.
+- I profili nella sidebar restano cliccabili.
 
-In Streamlit Cloud → Settings → Secrets aggiungere:
+## Configurazione Streamlit Secrets
+In Streamlit → Settings → Secrets:
 
 ```toml
+SERPAPI_KEY = "..."
 INSTAGRAM_SESSIONID = "..."
-# opzionale
 INSTAGRAM_CSRF_TOKEN = "..."
 ```
 
-`INSTAGRAM_SESSIONID` è una credenziale sensibile: trattala come una password e non condividerla in chat, GitHub o screenshot.
+Il `sessionid` è una credenziale sensibile: non inserirlo in GitHub e non inviarlo in chat.
 
-La modalità autenticata usa il cookie di sessione solo in memoria per leggere i profili configurati e non lo salva nel database `events.db`.
-
-La modalità è best-effort: Instagram può richiedere verifiche, cambiare endpoint o limitare richieste automatizzate. Se Instagram risponde con blocco/401, l'app lo segnala senza fare retry automatici.
-
-## Profili monitorati
-- donnarosa38
-- formentera_marinadiravenna
-- bagnozanzibar
-- matilda_disco
-- hookipaeventi
-- bbk_peasurebeach
-- singitamarinadiravenna
-
-## SerpAPI
-La ricerca Web + Instagram via SerpAPI continua a funzionare come prima. La modalità autenticata Instagram è separata e non consuma crediti SerpAPI.
+## Importante
+Instagram può rifiutare richieste automatizzate o cambiare gli endpoint web. La v20 mostra chiaramente l'errore della ricerca diretta invece di ricadere su SerpAPI.

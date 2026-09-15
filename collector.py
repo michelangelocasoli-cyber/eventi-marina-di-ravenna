@@ -296,9 +296,9 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     return analyzed, queries_used
 
 # --- Authenticated Instagram (optional) ---
-def instagram_session_from_env():
+def instagram_session_from_env(sessionid=None, csrf_token=None):
     """Build a requests session from Streamlit/OS secrets. Never stores credentials in DB."""
-    sid = os.getenv('INSTAGRAM_SESSIONID', '').strip()
+    sid = (sessionid or os.getenv('INSTAGRAM_SESSIONID', '')).strip()
     if not sid:
         return None
     s = requests.Session()
@@ -309,7 +309,7 @@ def instagram_session_from_env():
         'X-IG-App-ID': '936619743392459',
     })
     s.cookies.set('sessionid', sid, domain='.instagram.com')
-    csrf = os.getenv('INSTAGRAM_CSRF_TOKEN', '').strip()
+    csrf = (csrf_token or os.getenv('INSTAGRAM_CSRF_TOKEN', '')).strip()
     if csrf:
         s.cookies.set('csrftoken', csrf, domain='.instagram.com')
     return s
@@ -355,10 +355,10 @@ def instagram_authenticated_profile(username, target_date, place, session):
         return []
 
 
-def run_authenticated_instagram(place, target_date, accounts=None):
+def run_authenticated_instagram(place, target_date, accounts=None, sessionid=None, csrf_token=None):
     """Read monitored Instagram profiles with an authenticated session, without SerpAPI."""
     accounts = accounts or DEFAULT_ACCOUNTS
-    session = instagram_session_from_env()
+    session = instagram_session_from_env(sessionid=sessionid, csrf_token=csrf_token)
     if session is None:
         return 0, 0, 'INSTAGRAM_SESSIONID non configurato'
     con = init()

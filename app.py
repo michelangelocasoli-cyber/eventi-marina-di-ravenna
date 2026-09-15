@@ -22,6 +22,13 @@ if 'last_error' not in st.session_state:
 def get_key():
     return st.secrets.get('SERPAPI_KEY', os.getenv('SERPAPI_KEY', ''))
 
+def get_instagram_secrets():
+    # Streamlit Secrets are not automatically exported to os.environ.
+    return (
+        st.secrets.get('INSTAGRAM_SESSIONID', os.getenv('INSTAGRAM_SESSIONID', '')),
+        st.secrets.get('INSTAGRAM_CSRF_TOKEN', os.getenv('INSTAGRAM_CSRF_TOKEN', '')),
+    )
+
 
 def get_events(place, day, include_probable=False):
     if not DB.exists():
@@ -58,7 +65,7 @@ with st.sidebar:
     for a in DEFAULT_ACCOUNTS:
         st.markdown(f'[@{a}](https://www.instagram.com/{a}/)')
     st.divider()
-    st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Instagram viene cercato account per account per aumentare molto la precisione.')
+    st.caption('Nessun aggiornamento automatico. La ricerca Instagram diretta è separata da SerpAPI e non consuma crediti SerpAPI.')
 
     budget = st.number_input('Budget indicativo crediti SerpAPI', min_value=1, max_value=10000, value=250, step=10)
     st.metric('Chiamate in questa sessione', st.session_state.calls_used)
@@ -85,6 +92,25 @@ with st.sidebar:
                     st.error(str(e))
 
     refresh = st.button('🔎 Cerca / aggiorna eventi', type='primary', use_container_width=True)
+    instagram_direct = st.button('📱 Cerca direttamente su Instagram', use_container_width=True,
+        help='Questa ricerca NON usa SerpAPI. Usa la sessione Instagram configurata nei Secrets di Streamlit.')
+
+if instagram_direct:
+    sid, csrf = get_instagram_secrets()
+    if not sid:
+        st.error('Instagram non configurato. In Streamlit → Settings → Secrets aggiungi INSTAGRAM_SESSIONID.')
+    else:
+        with st.spinner('Ricerca diretta sui profili Instagram…'):
+            try:
+                analyzed, found, err = run_authenticated_instagram(place, day.isoformat(), accounts=DEFAULT_ACCOUNTS, sessionid=sid, csrf_token=csrf)
+                if err:
+                    st.error(err)
+                elif found:
+                    st.success(f'Instagram: trovati {found} contenuti, {analyzed} eventi archiviati. Nessun credito SerpAPI utilizzato.')
+                else:
+                    st.warning('Instagram ha risposto, ma non sono stati trovati contenuti per la data selezionata. Nessun credito SerpAPI utilizzato.')
+            except Exception as e:
+                st.error(f'Errore nella ricerca Instagram diretta: {e}')
 
 if refresh:
     key = get_key()
