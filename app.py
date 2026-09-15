@@ -41,22 +41,21 @@ def get_events(place, day, include_probable=False):
 
 
 st.title('📍 Event Aggregator')
-st.caption('Ricerca manuale di eventi sul web · Instagram verrà aggiunto separatamente')
+st.caption('Ricerca manuale di eventi sul web e Instagram')
 st.info('⚡ Ricerca usa Google Light di SerpAPI: più rapida e adatta a questo aggregatore, che usa solo risultati organici.')
 
 with st.sidebar:
     st.header('Ricerca')
     place = st.text_input('Luogo', DEFAULT_PLACE)
     day = st.date_input('Data', DEFAULT_DATE)
-    st.checkbox('Instagram (temporaneamente disattivato)', value=False, disabled=True,
-                help='V11: Instagram è disattivato mentre stabilizziamo la ricerca web.')
-    search_instagram = False
-    mode_label = '💰 Economica — 1 ricerca max'
+    search_instagram = st.checkbox('Cerca anche su Instagram', value=True,
+                help='Usa una seconda chiamata SerpAPI, raggruppando tutti gli account in un’unica ricerca.')
+    mode_label = '💰 Economica — 1 ricerca web + 1 Instagram' if search_instagram else '💰 Economica — 1 ricerca max'
     mode = 'full' if mode_label.startswith('🔎') else 'economy'
     st.divider()
     st.write('**Account Instagram monitorati**')
     for a in DEFAULT_ACCOUNTS:
-        st.write('@' + a)
+        st.markdown(f'[@{a}](https://www.instagram.com/{a}/)')
     st.divider()
     st.caption('Nessun aggiornamento automatico. Nessun retry automatico. Una sola chiamata per ricerca.')
 

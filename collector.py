@@ -233,6 +233,23 @@ def _store_results(con, place, target_date, results, account=''):
     return analyzed
 
 
+def instagram_account_from_url(url, accounts):
+    try:
+        parsed = urlparse(url)
+        if 'instagram.com' not in parsed.netloc.lower():
+            return ''
+        parts = [p for p in parsed.path.split('/') if p]
+        if not parts:
+            return ''
+        candidate = parts[0].lower().lstrip('@')
+        for account in accounts:
+            if candidate == account.lower():
+                return account
+    except Exception:
+        pass
+    return ''
+
+
 def run(place, target_date, search_instagram=True, api_key=None, accounts=None, mode='economy'):
     api_key = api_key or os.getenv('SERPAPI_KEY', '')
     if not api_key:
@@ -243,10 +260,27 @@ def run(place, target_date, search_instagram=True, api_key=None, accounts=None, 
     queries_used = 0
     date_label = date_terms(target_date)[1]
     try:
+        # One general web search.
         q_web = f'{place} eventi {date_label}'
         analyzed += _store_results(con, place, target_date, serpapi_request(q_web, api_key, n=5))
         queries_used += 1
-        # Instagram intentionally disabled in v11: stabilize the web search first.
+
+        # One combined Instagram search for all monitored accounts. This keeps the
+        # economy mode at a maximum of 2 SerpAPI calls, not one call per account.
+        if search_instagram:
+            account_terms = ' OR '.join(f'"{a}"' for a in accounts)
+            q_ig = f'{place} {date_label} Instagram ({account_terms})'
+            ig_results = serpapi_request(q_ig, api_key, n=10)
+            # Keep only Instagram results and attribute each result to the account
+            # when its URL exposes the profile name.
+            for r in ig_results:
+                url = r.get('link', '')
+                account = instagram_account_from_url(url, accounts)
+                if 'instagram.com' not in urlparse(url).netloc.lower():
+                    continue
+                analyzed += _store_results(con, place, target_date, [r], account=account)
+            queries_used += 1
+
         con.commit()
     finally:
         con.close()
